@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin – Espaço Bem-Estar</title>
+  <meta name="description" content="Painel de gerenciamento de agendamentos do Espaço Bem-Estar. Visualize, confirme e cancele agendamentos.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --verde:#1a6b4a;--verde-claro:#2e9668;--verde-palido:#d4ede3;
+      --navy:#1a2744;--creme:#f5f7fa;--branco:#fff;
+      --cinza:#6b7280;--cinza-claro:#e5e7eb;
+      --amarelo:#f59e0b;--vermelho:#dc2626;--vermelho-claro:#fee2e2;
+      --azul:#2563eb;--azul-claro:#dbeafe;
+    }
+    html{font-size:16px;scroll-behavior:smooth}
+    body{font-family:'DM Sans',sans-serif;background:var(--creme);color:var(--navy);line-height:1.6;min-height:100vh}
+
+    /* ── ACESSIBILIDADE ── */
+    .skip-link{position:absolute;top:-100px;left:1rem;background:var(--verde);color:#fff;padding:.75rem 1.5rem;border-radius:0 0 8px 8px;font-weight:700;font-size:1rem;z-index:9999;text-decoration:none;transition:top .2s}
+    .skip-link:focus{top:0}
+    *:focus-visible{outline:3px solid var(--amarelo);outline-offset:3px;border-radius:4px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    #live-region{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+    @media(prefers-contrast:high){:root{--verde:#005c35;--navy:#000;--creme:#fff;--cinza-claro:#000}*{border-color:#000!important}}
+    @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+    /* ── LOGIN ── */
+    #tela-login{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.5rem;background:linear-gradient(135deg,var(--verde) 0%,var(--verde-claro) 100%)}
+    .login-card{background:var(--branco);border-radius:24px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+    .login-logo{font-size:1.4rem;font-weight:700;color:var(--verde);margin-bottom:.25rem}
+    .login-logo span{color:var(--navy)}
+    .login-sub{color:var(--cinza);font-size:.9rem;margin-bottom:2rem}
+    .login-card h1{font-size:1.5rem;font-weight:700;color:var(--navy);margin-bottom:.25rem}
+
+    /* ── PAINEL PRINCIPAL ── */
+    #tela-admin{display:none;min-height:100vh;flex-direction:column}
+
+    /* TOPBAR */
+    .topbar{background:var(--navy);color:#fff;padding:0 1.5rem;position:sticky;top:0;z-index:100}
+    .topbar-inner{max-width:1300px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px;gap:1rem}
+    .topbar-logo{font-size:1.1rem;font-weight:700;color:#fff}
+    .topbar-logo span{color:#b2ffd8}
+    .topbar-right{display:flex;align-items:center;gap:1rem}
+    .topbar-status{font-size:.8rem;color:#b2ffd8;display:flex;align-items:center;gap:.4rem}
+    .topbar-status::before{content:'●';font-size:.6rem;color:#4ade80}
+    .btn-logout{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);padding:.45rem 1rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:background .2s}
+    .btn-logout:hover{background:rgba(255,255,255,.2)}
+
+    /* CONTEÚDO */
+    .admin-body{max-width:1300px;margin:0 auto;padding:2rem 1.5rem;flex:1}
+
+    /* FILTROS */
+    .filtros-section{background:var(--branco);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;border:1px solid var(--cinza-claro)}
+    .filtros-section h2{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:1rem}
+    .filtros-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;align-items:end}
+    .filtro-group{display:flex;flex-direction:column;gap:.35rem}
+    .filtro-group label{font-size:.82rem;font-weight:600;color:var(--navy)}
+    .filtro-group select,.filtro-group input{padding:.65rem .85rem;border:2px solid var(--cinza-claro);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--navy);background:var(--creme);cursor:pointer;transition:border-color .2s}
+    .filtro-group select:focus,.filtro-group input:focus{border-color:var(--verde);outline:none;box-shadow:0 0 0 3px rgba(26,107,74,.12)}
+    .btn-filtrar{background:var(--verde);color:#fff;border:none;padding:.7rem 1.5rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .2s;white-space:nowrap}
+    .btn-filtrar:hover{background:var(--navy)}
+    .btn-limpar{background:var(--creme);color:var(--navy);border:2px solid var(--cinza-claro);padding:.7rem 1.25rem;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:border-color .2s;white-space:nowrap}
+    .btn-limpar:hover{border-color:var(--navy)}
+
+    /* CARDS DE ESTATÍSTICAS */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .stat-card{background:var(--branco);border-radius:14px;padding:1.25rem 1.5rem;border:1px solid var(--cinza-claro);display:flex;flex-direction:column;gap:.25rem}
+    .stat-card-label{font-size:.78rem;font-weight:600;color:var(--cinza);text-transform:uppercase;letter-spacing:.05em}
+    .stat-card-valor{font-size:2rem;font-weight:700;color:var(--navy);line-height:1}
+    .stat-card-sub{font-size:.78rem;color:var(--cinza)}
+    .stat-card.verde .stat-card-valor{color:var(--verde)}
+    .stat-card.amarelo .stat-card-valor{color:#d97706}
+    .stat-card.vermelho .stat-card-valor{color:var(--vermelho)}
+    .stat-card.azul .stat-card-valor{color:var(--azul)}
+
+    /* TABELA */
+    .tabela-section{background:var(--branco);border-radius:16px;border:1px solid var(--cinza-claro);overflow:hidden}
+    .tabela-header{padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--cinza-claro);gap:1rem;flex-wrap:wrap}
+    .tabela-header h2{font-size:1rem;font-weight:700;color:var(--navy)}
+    .tabela-contagem{font-size:.82rem;color:var(--cinza);background:var(--creme);padding:.25rem .75rem;border-radius:50px;font-weight:600}
+    .btn-atualizar{background:var(--verde-palido);color:var(--verde);border:none;padding:.55rem 1.1rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:background .2s}
+    .btn-atualizar:hover{background:var(--verde);color:#fff}
+
+    /* Tabela acessível */
+    .tabela-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    table{width:100%;border-collapse:collapse;min-width:800px}
+    thead th{padding:.9rem 1rem;text-align:left;font-size:.78rem;font-weight:700;color:var(--cinza);text-transform:uppercase;letter-spacing:.06em;background:var(--creme);border-bottom:2px solid var(--cinza-claro);white-space:nowrap}
+    tbody tr{border-bottom:1px solid var(--cinza-claro);transition:background .15s}
+    tbody tr:last-child{border:none}
+    tbody tr:hover{background:#f8fafc}
+    tbody tr:focus-within{background:#f0fdf4;outline:2px solid var(--verde);outline-offset:-2px}
+    td{padding:.9rem 1rem;font-size:.88rem;color:var(--navy);vertical-align:middle}
+    td .td-label{display:none;font-size:.72rem;font-weight:700;color:var(--cinza);text-transform:uppercase;margin-bottom:.15rem}
+
+    /* STATUS BADGE */
+    .badge{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .75rem;border-radius:50px;font-size:.75rem;font-weight:700;white-space:nowrap}
+    .badge-confirmado{background:#dcfce7;color:#166534}
+    .badge-pendente{background:#fef9c3;color:#854d0e}
+    .badge-cancelado{background:var(--vermelho-claro);color:var(--vermelho)}
+    .badge-concluido{background:var(--azul-claro);color:var(--azul)}
+
+    /* AÇÕES */
+    .acoes{display:flex;gap:.4rem;flex-wrap:wrap}
+    .btn-acao{border:none;padding:.4rem .8rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:.3rem}
+    .btn-acao:hover{transform:translateY(-1px)}
+    .btn-confirmar{background:#dcfce7;color:#166534}
+    .btn-confirmar:hover{background:#bbf7d0}
+    .btn-cancelar{background:var(--vermelho-claro);color:var(--vermelho)}
+    .btn-cancelar:hover{background:#fecaca}
+    .btn-concluir{background:var(--azul-claro);color:var(--azul)}
+    .btn-concluir:hover{background:#bfdbfe}
+    .btn-wa{background:#d1fae5;color:#065f46}
+    .btn-wa:hover{background:#a7f3d0}
+    .btn-detalhe{background:var(--creme);color:var(--navy);border:1px solid var(--cinza-claro)}
+    .btn-detalhe:hover{background:var(--cinza-claro)}
+
+    /* VAZIO / LOADING */
+    .estado-vazio{padding:3rem;text-align:center;color:var(--cinza)}
+    .estado-vazio p{font-size:1.05rem;margin-top:.5rem}
+    .estado-loading{padding:3rem;text-align:center;color:var(--cinza)}
+    .spinner-grande{display:inline-block;width:36px;height:36px;border:4px solid var(--verde-palido);border-radius:50%;border-top-color:var(--verde);animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* MODAL DETALHE */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:var(--branco);border-radius:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.25)}
+    .modal-header{padding:1.5rem;border-bottom:1px solid var(--cinza-claro);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--branco);border-radius:20px 20px 0 0}
+    .modal-header h2{font-size:1.1rem;font-weight:700;color:var(--navy)}
+    .btn-fechar{background:var(--creme);border:none;width:36px;height:36px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--cinza);transition:background .2s}
+    .btn-fechar:hover{background:var(--cinza-claro)}
+    .modal-body{padding:1.5rem}
+    .detalhe-item{display:flex;justify-content:space-between;align-items:flex-start;padding:.65rem 0;border-bottom:1px solid var(--cinza-claro);gap:1rem}
+    .detalhe-item:last-of-type{border:none}
+    .detalhe-label{font-size:.8rem;font-weight:700;color:var(--cinza);text-transform:uppercase;letter-spacing:.05em;min-width:100px}
+    .detalhe-valor{font-size:.92rem;font-weight:600;color:var(--navy);text-align:right}
+    .modal-acoes{display:flex;gap:.75rem;flex-wrap:wrap;padding:1.5rem;border-top:1px solid var(--cinza-claro);background:var(--creme);border-radius:0 0 20px 20px}
+    .modal-acoes button,.modal-acoes a{flex:1;min-width:120px;padding:.75rem 1rem;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:.4rem;transition:all .15s;border:none}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(120px);background:var(--navy);color:#fff;padding:.85rem 1.75rem;border-radius:50px;font-size:.9rem;font-weight:600;z-index:999;transition:transform .3s;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:90vw;text-align:center}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast.erro{background:var(--vermelho)}
+    .toast.ok{background:var(--verde)}
+
+    /* FORM LOGIN */
+    .form-group{margin-bottom:1.1rem}
+    .form-group label{display:block;font-weight:600;font-size:.9rem;color:var(--navy);margin-bottom:.4rem}
+    .form-group input{width:100%;padding:.85rem 1rem;border:2px solid var(--cinza-claro);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1rem;color:var(--navy);background:var(--creme);transition:border-color .2s}
+    .form-group input:focus{border-color:var(--verde);outline:none;box-shadow:0 0 0 3px rgba(26,107,74,.12)}
+    .btn-entrar{width:100%;background:var(--verde);color:#fff;border:none;padding:.9rem;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:background .2s;margin-top:.5rem}
+    .btn-entrar:hover{background:var(--navy)}
+    .erro-login{color:var(--vermelho);font-size:.85rem;margin-top:.5rem;display:none;font-weight:600}
+    .erro-login.visible{display:block}
+
+    /* PAGINAÇÃO */
+    .paginacao{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:1.25rem;border-top:1px solid var(--cinza-claro);flex-wrap:wrap}
+    .btn-pag{background:var(--creme);color:var(--navy);border:2px solid var(--cinza-claro);width:38px;height:38px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+    .btn-pag:hover:not(:disabled){border-color:var(--verde);color:var(--verde)}
+    .btn-pag[aria-current="true"]{background:var(--verde);color:#fff;border-color:var(--verde)}
+    .btn-pag:disabled{color:#d1d5db;cursor:not-allowed}
+    .pag-info{font-size:.82rem;color:var(--cinza)}
+
+    @media(max-width:768px){
+      .filtros-grid{grid-template-columns:1fr 1fr}
+      .stats-grid{grid-template-columns:repeat(2,1fr)}
+      .topbar-status{display:none}
+      td .td-label{display:block}
+    }
+    @media(max-width:480px){
+      .filtros-grid{grid-template-columns:1fr}
+      .stats-grid{grid-template-columns:1fr 1fr}
+      .admin-body{padding:1rem}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Regiões de anúncio para leitores de tela -->
+<div id="live-region" aria-live="polite" aria-atomic="true" role="status"></div>
+<div id="live-region-urgente" aria-live="assertive" aria-atomic="true" role="alert" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<a class="skip-link" href="#main-admin">Pular para conteúdo principal</a>
+<a class="skip-link" href="#filtros">Pular para filtros</a>
+<a class="skip-link" href="#tabela-agendamentos">Pular para lista de agendamentos</a>
+
+<!-- ══════════════════════════════════════
+     TELA DE LOGIN
+══════════════════════════════════════ -->
+<div id="tela-login" role="main" aria-label="Área de login do painel administrativo">
+  <div class="login-card" role="region" aria-labelledby="login-titulo">
+    <div class="login-logo" aria-hidden="true">Espaço<span> Bem-Estar</span></div>
+    <h1 id="login-titulo">Painel Administrativo</h1>
+    <p class="login-sub">Acesso restrito à equipe da clínica</p>
+
+    <div class="form-group">
+      <label for="login-email">
+        E-mail de acesso
+        <span class="sr-only">, campo obrigatório</span>
+      </label>
+      <input type="email" id="login-email" autocomplete="email"
+        placeholder="admin@espacobemestar.com"
+        aria-required="true"
+        aria-describedby="login-email-desc">
+      <div id="login-email-desc" class="sr-only">Informe o e-mail cadastrado para acesso ao painel</div>
+    </div>
+
+    <div class="form-group">
+      <label for="login-senha">
+        Senha
+        <span class="sr-only">, campo obrigatório</span>
+      </label>
+      <input type="password" id="login-senha" autocomplete="current-password"
+        placeholder="••••••••"
+        aria-required="true"
+        aria-describedby="login-senha-desc">
+      <div id="login-senha-desc" class="sr-only">Informe sua senha de acesso</div>
+    </div>
+
+    <div id="erro-login" class="erro-login" role="alert" aria-live="assertive"></div>
+
+    <button class="btn-entrar" id="btn-entrar" type="button"
+      aria-label="Entrar no painel administrativo">
+      Entrar no Painel
+    </button>
+
+    <p style="margin-top:1.25rem;font-size:.78rem;color:var(--cinza);text-align:center;">
+      Acesso exclusivo para profissionais da clínica.<br>
+      Em caso de problemas, entre em contato com o suporte.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TELA ADMIN
+══════════════════════════════════════ -->
+<div id="tela-admin" role="application" aria-label="Painel de gerenciamento de agendamentos">
+
+  <!-- TOPBAR -->
+  <header class="topbar" role="banner">
+    <div class="topbar-inner">
+      <div class="topbar-logo" aria-label="Espaço Bem-Estar, painel administrativo">
+        Espaço<span> Bem-Estar</span> — Admin
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-status" id="topbar-usuario" aria-live="polite" aria-label="Usuário conectado">Carregando...</span>
+        <button class="btn-logout" id="btn-logout" type="button" aria-label="Sair do painel e encerrar sessão">
+          Sair
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO -->
+  <main class="admin-body" id="main-admin" aria-label="Gerenciamento de agendamentos">
+
+    <!-- TÍTULO -->
+    <section aria-labelledby="titulo-admin" style="margin-bottom:1.5rem;">
+      <h1 id="titulo-admin" style="font-size:1.5rem;font-weight:700;color:var(--navy);margin-bottom:.25rem;">
+        Agendamentos
+      </h1>
+      <p style="color:var(--cinza);font-size:.9rem;" id="subtitulo-data" aria-live="polite">Carregando dados...</p>
+    </section>
+
+    <!-- CARDS DE ESTATÍSTICAS -->
+    <section aria-labelledby="stats-titulo" style="margin-bottom:1.5rem;">
+      <h2 id="stats-titulo" class="sr-only">Resumo de agendamentos</h2>
+      <div class="stats-grid" role="list" aria-label="Estatísticas dos agendamentos">
+        <div class="stat-card verde" role="listitem" aria-label="Total de agendamentos confirmados">
+          <span class="stat-card-label">Confirmados</span>
+          <span class="stat-card-valor" id="stat-confirmados" aria-live="polite" aria-atomic="true">–</span>
+          <span class="stat-card-sub">agendamentos ativos</span>
+        </div>
+        <div class="stat-card amarelo" role="listitem" aria-label="Agendamentos de hoje">
+          <span class="stat-card-label">Hoje</span>
+          <span class="stat-card-valor" id="stat-hoje" aria-live="polite" aria-atomic="true">–</span>
+          <span class="stat-card-sub">sessões programadas</span>
+        </div>
+        <div class="stat-card azul" role="listitem" aria-label="Agendamentos concluídos">
+          <span class="stat-card-label">Concluídos</span>
+          <span class="stat-card-valor" id="stat-concluidos" aria-live="polite" aria-atomic="true">–</span>
+          <span class="stat-card-sub">sessões realizadas</span>
+        </div>
+        <div class="stat-card vermelho" role="listitem" aria-label="Agendamentos cancelados">
+          <span class="stat-card-label">Cancelados</span>
+          <span class="stat-card-valor" id="stat-cancelados" aria-live="polite" aria-atomic="true">–</span>
+          <span class="stat-card-sub">neste mês</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- FILTROS -->
+    <section class="filtros-section" id="filtros" aria-labelledby="filtros-titulo">
+      <h2 id="filtros-titulo">Filtrar agendamentos</h2>
+      <div class="filtros-grid" role="group" aria-label="Opções de filtro">
+
+        <div class="filtro-group">
+          <label for="f-status">Status do agendamento</label>
+          <select id="f-status" aria-label="Filtrar por status">
+            <option value="">Todos os status</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="concluido">Concluído</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+
+        <div class="filtro-group">
+          <label for="f-servico">Tipo de serviço</label>
+          <select id="f-servico" aria-label="Filtrar por tipo de serviço">
+            <option value="">Todos os serviços</option>
+            <option value="relaxante">Massagem Relaxante</option>
+            <option value="drenagem">Drenagem Linfática</option>
+            <option value="desportiva">Massagem Desportiva</option>
+          </select>
+        </div>
+
+        <div class="filtro-group">
+          <label for="f-data-inicio">Data início</label>
+          <input type="date" id="f-data-inicio" aria-label="Data inicial do período a filtrar">
+        </div>
+
+        <div class="filtro-group">
+          <label for="f-data-fim">Data fim</label>
+          <input type="date" id="f-data-fim" aria-label="Data final do período a filtrar">
+        </div>
+
+        <div class="filtro-group">
+          <label for="f-busca">Buscar por nome ou telefone</label>
+          <input type="search" id="f-busca" placeholder="Ex: Maria ou (27)..." aria-label="Buscar agendamento por nome do cliente ou telefone">
+        </div>
+
+        <div class="filtro-group" style="display:flex;gap:.5rem;flex-direction:row;align-items:flex-end;">
+          <button class="btn-filtrar" id="btn-filtrar" type="button" aria-label="Aplicar filtros selecionados">
+            🔍 Filtrar
+          </button>
+          <button class="btn-limpar" id="btn-limpar-filtros" type="button" aria-label="Limpar todos os filtros e mostrar todos os agendamentos">
+            Limpar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABELA -->
+    <section class="tabela-section" aria-labelledby="tabela-titulo">
+      <div class="tabela-header">
+        <h2 id="tabela-titulo">Lista de Agendamentos</h2>
+        <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+          <span class="tabela-contagem" id="tabela-contagem" aria-live="polite" aria-atomic="true">
+            Carregando...
+          </span>
+          <button class="btn-atualizar" id="btn-atualizar" type="button"
+            aria-label="Atualizar lista de agendamentos buscando dados mais recentes">
+            🔄 Atualizar
+          </button>
+        </div>
+      </div>
+
+      <div class="tabela-wrap">
+        <table id="tabela-agendamentos"
+          aria-label="Lista de agendamentos com opções de gerenciamento"
+          aria-describedby="tabela-desc">
+          <caption id="tabela-desc" class="sr-only">
+            Tabela de agendamentos. Cada linha contém: código, cliente, serviço, data, horário, status e ações disponíveis como confirmar, cancelar, concluir e contatar pelo WhatsApp.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Código</th>
+              <th scope="col">Cliente</th>
+              <th scope="col">Serviço</th>
+              <th scope="col">Data</th>
+              <th scope="col">Horário</th>
+              <th scope="col">Status</th>
+              <th scope="col">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-corpo" aria-live="polite" aria-relevant="additions removals">
+            <tr>
+              <td colspan="7">
+                <div class="estado-loading" role="status" aria-label="Carregando agendamentos">
+                  <div class="spinner-grande" aria-hidden="true"></div>
+                  <p>Carregando agendamentos...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINAÇÃO -->
+      <nav class="paginacao" id="paginacao" aria-label="Paginação da lista de agendamentos"></nav>
+
+    </section>
+  </main>
+
+  <footer style="text-align:center;padding:1.25rem;color:var(--cinza);font-size:.78rem;" role="contentinfo">
+    Espaço Bem-Estar · Painel Admin · Dados via Supabase ·
+    <span id="footer-ultima-atualizacao" aria-live="polite"></span>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL DETALHE
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay" role="dialog"
+  aria-modal="true" aria-labelledby="modal-titulo" aria-hidden="true">
+  <div class="modal" role="document">
+    <div class="modal-header">
+      <h2 id="modal-titulo">Detalhes do Agendamento</h2>
+      <button class="btn-fechar" id="btn-fechar-modal" type="button"
+        aria-label="Fechar modal de detalhes">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body" aria-label="Informações completas do agendamento">
+      <!-- preenchido via JS -->
+    </div>
+    <div class="modal-acoes" id="modal-acoes" aria-label="Ações para este agendamento">
+      <!-- preenchido via JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// CONFIG SUPABASE
+// ══════════════════════════════════════
+const SUPABASE_URL = 'https://joqkcmiobouhzfjsgsrv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_vg-wiU0uYrZb-5YTqZPiwg_D_nPMnSF';
+const CLINICA_WA   = '5527998182007';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ══════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════
+let todosAgendamentos = [];
+let agendamentosFiltrados = [];
+let paginaAtual = 1;
+const POR_PAGINA = 15;
+let agendamentoSelecionado = null;
+
+const SERVICO_LABEL = {
+  relaxante:'Massagem Relaxante (60 min)',
+  drenagem:'Drenagem Linfática (60 min)',
+  desportiva:'Massagem Desportiva (50 min)'
+};
+const STATUS_CONFIG = {
+  confirmado:{label:'Confirmado',classe:'badge-confirmado'},
+  concluido:{label:'Concluído',classe:'badge-concluido'},
+  cancelado:{label:'Cancelado',classe:'badge-cancelado'},
+  pendente:{label:'Pendente',classe:'badge-pendente'}
+};
+
+// ══════════════════════════════════════
+// HELPERS ACESSIBILIDADE
+// ══════════════════════════════════════
+function anunciar(msg, urgente=false) {
+  const id = urgente ? 'live-region-urgente' : 'live-region';
+  const r = document.getElementById(id);
+  r.textContent = ''; setTimeout(()=>r.textContent=msg, 60);
+}
+function showToast(msg, tipo='ok') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${tipo} show`;
+  setTimeout(()=>t.className='toast', 4500);
+}
+function fmtData(ds) {
+  if(!ds)return '–';
+  const[y,m,d]=ds.split('-'); return `${d}/${m}/${y}`;
+}
+function fmtDataHora(iso) {
+  if(!iso)return '–';
+  const d=new Date(iso);
+  return d.toLocaleDateString('pt-BR')+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ══════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════
+document.getElementById('btn-entrar').addEventListener('click', fazerLogin);
+document.getElementById('login-senha').addEventListener('keydown', e=>{
+  if(e.key==='Enter') fazerLogin();
+});
+
+async function fazerLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  const erroEl = document.getElementById('erro-login');
+  const btn = document.getElementById('btn-entrar');
+
+  erroEl.classList.remove('visible');
+  btn.textContent='Entrando...'; btn.disabled=true;
+  anunciar('Verificando credenciais, aguarde.', true);
+
+  try {
+    const{data,error} = await db.auth.signInWithPassword({email, password:senha});
+    if(error) throw error;
+    mostrarAdmin(data.user);
+  } catch(e) {
+    erroEl.textContent = 'E-mail ou senha incorretos. Verifique e tente novamente.';
+    erroEl.classList.add('visible');
+    btn.textContent='Entrar no Painel'; btn.disabled=false;
+    anunciar('Erro de login: e-mail ou senha incorretos.', true);
+    document.getElementById('login-senha').value='';
+    document.getElementById('login-senha').focus();
+  }
+}
+
+function mostrarAdmin(user) {
+  document.getElementById('tela-login').style.display='none';
+  document.getElementById('tela-admin').style.display='flex';
+  document.getElementById('tela-admin').style.flexDirection='column';
+  const nome = user.email.split('@')[0];
+  document.getElementById('topbar-usuario').textContent=`Olá, ${nome}`;
+  document.getElementById('topbar-usuario').setAttribute('aria-label',`Usuário conectado: ${user.email}`);
+  const hoje = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('subtitulo-data').textContent=`Hoje é ${hoje}`;
+  anunciar(`Login realizado com sucesso. Bem-vindo ao painel, ${nome}. Carregando agendamentos.`);
+  carregarAgendamentos();
+}
+
+// Verifica sessão existente
+db.auth.getSession().then(({data:{session}})=>{
+  if(session) mostrarAdmin(session.user);
+});
+
+document.getElementById('btn-logout').addEventListener('click', async ()=>{
+  await db.auth.signOut();
+  document.getElementById('tela-admin').style.display='none';
+  document.getElementById('tela-login').style.display='flex';
+  anunciar('Você saiu do painel com sucesso.',true);
+  document.getElementById('login-email').focus();
+});
+
+// ══════════════════════════════════════
+// CARREGAR AGENDAMENTOS
+// ══════════════════════════════════════
+async function carregarAgendamentos() {
+  const corpo=document.getElementById('tabela-corpo');
+  corpo.innerHTML=`<tr><td colspan="7"><div class="estado-loading" role="status" aria-label="Carregando agendamentos"><div class="spinner-grande" aria-hidden="true"></div><p>Carregando agendamentos...</p></div></td></tr>`;
+  anunciar('Carregando lista de agendamentos.');
+
+  try {
+    const{data,error}=await db.from('agendamentos')
+      .select('*').order('data',{ascending:false}).order('horario',{ascending:true});
+    if(error)throw error;
+    todosAgendamentos=data||[];
+    aplicarFiltros();
+    atualizarEstatisticas();
+    const agora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('footer-ultima-atualizacao').textContent=`Última atualização: ${agora}`;
+    anunciar(`${todosAgendamentos.length} agendamento${todosAgendamentos.length!==1?'s':''} carregado${todosAgendamentos.length!==1?'s':''}.`);
+  } catch(e) {
+    console.error(e);
+    corpo.innerHTML=`<tr><td colspan="7"><div class="estado-vazio" role="alert"><p>⚠ Erro ao carregar agendamentos. Verifique sua conexão e tente novamente.</p></div></td></tr>`;
+    anunciar('Erro ao carregar agendamentos.', true);
+  }
+}
+
+// ══════════════════════════════════════
+// ESTATÍSTICAS
+// ══════════════════════════════════════
+function atualizarEstatisticas() {
+  const hoje=new Date().toISOString().split('T')[0];
+  const mesAtual=new Date().toISOString().slice(0,7);
+  const confirmados=todosAgendamentos.filter(a=>a.status==='confirmado').length;
+  const hj=todosAgendamentos.filter(a=>a.data===hoje&&a.status!=='cancelado').length;
+  const concluidos=todosAgendamentos.filter(a=>a.status==='concluido').length;
+  const cancelados=todosAgendamentos.filter(a=>a.status==='cancelado'&&a.data?.startsWith(mesAtual)).length;
+  document.getElementById('stat-confirmados').textContent=confirmados;
+  document.getElementById('stat-hoje').textContent=hj;
+  document.getElementById('stat-concluidos').textContent=concluidos;
+  document.getElementById('stat-cancelados').textContent=cancelados;
+}
+
+// ══════════════════════════════════════
+// FILTROS
+// ══════════════════════════════════════
+document.getElementById('btn-filtrar').addEventListener('click',()=>{
+  paginaAtual=1; aplicarFiltros();
+  anunciar('Filtros aplicados. Atualizando lista.');
+});
+document.getElementById('btn-limpar-filtros').addEventListener('click',()=>{
+  ['f-status','f-servico'].forEach(id=>document.getElementById(id).value='');
+  ['f-data-inicio','f-data-fim','f-busca'].forEach(id=>document.getElementById(id).value='');
+  paginaAtual=1; aplicarFiltros();
+  anunciar('Filtros limpos. Mostrando todos os agendamentos.');
+});
+document.getElementById('btn-atualizar').addEventListener('click',()=>{
+  carregarAgendamentos();
+});
+
+// Filtrar com Enter no campo busca
+document.getElementById('f-busca').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){paginaAtual=1;aplicarFiltros();anunciar('Filtros aplicados.');}
+});
+
+function aplicarFiltros() {
+  const status=document.getElementById('f-status').value;
+  const servico=document.getElementById('f-servico').value;
+  const dataIni=document.getElementById('f-data-inicio').value;
+  const dataFim=document.getElementById('f-data-fim').value;
+  const busca=document.getElementById('f-busca').value.toLowerCase().trim();
+
+  agendamentosFiltrados=todosAgendamentos.filter(a=>{
+    if(status&&a.status!==status)return false;
+    if(servico&&a.servico!==servico)return false;
+    if(dataIni&&a.data<dataIni)return false;
+    if(dataFim&&a.data>dataFim)return false;
+    if(busca){
+      const nome=(a.nome_cliente||'').toLowerCase();
+      const tel=(a.telefone||'').replace(/\D/g,'');
+      if(!nome.includes(busca)&&!tel.includes(busca.replace(/\D/g,'')))return false;
+    }
+    return true;
+  });
+  renderTabela();
+}
+
+// ══════════════════════════════════════
+// RENDERIZAR TABELA
+// ══════════════════════════════════════
+function renderTabela() {
+  const corpo=document.getElementById('tabela-corpo');
+  const total=agendamentosFiltrados.length;
+  const inicio=(paginaAtual-1)*POR_PAGINA;
+  const fim=Math.min(inicio+POR_PAGINA,total);
+  const pagina=agendamentosFiltrados.slice(inicio,fim);
+
+  // Contagem
+  document.getElementById('tabela-contagem').textContent=
+    total===0?'Nenhum resultado':`${inicio+1}–${fim} de ${total} agendamento${total!==1?'s':''}`;
+
+  if(pagina.length===0){
+    corpo.innerHTML=`<tr><td colspan="7"><div class="estado-vazio" role="status" aria-label="Nenhum agendamento encontrado"><p>📭 Nenhum agendamento encontrado com os filtros selecionados.</p></div></td></tr>`;
+    renderPaginacao(total);
+    return;
+  }
+
+  corpo.innerHTML='';
+  pagina.forEach(a=>{
+    const sc=STATUS_CONFIG[a.status]||STATUS_CONFIG.pendente;
+    const[y,m,d]=( a.data||'0000-00-00').split('-');
+    const dataFmt=`${d}/${m}/${y}`;
+    const srv=SERVICO_LABEL[a.servico]||a.servico||'–';
+
+    const tr=document.createElement('tr');
+    tr.setAttribute('tabindex','0');
+    tr.setAttribute('aria-label',
+      `Agendamento ${a.codigo}, cliente ${a.nome_cliente}, serviço ${srv}, data ${dataFmt}, horário ${a.horario}, status ${sc.label}. Pressione Enter para ver detalhes.`
+    );
+    tr.addEventListener('keydown',e=>{if(e.key==='Enter')abrirModal(a);});
+
+    tr.innerHTML=`
+      <td data-col="Código">
+        <div class="td-label" aria-hidden="true">Código</div>
+        <code style="font-size:.8rem;background:var(--creme);padding:.2rem .5rem;border-radius:6px;">${a.codigo||'–'}</code>
+      </td>
+      <td data-col="Cliente">
+        <div class="td-label" aria-hidden="true">Cliente</div>
+        <strong style="display:block;">${escHtml(a.nome_cliente||'–')}</strong>
+        <a href="tel:${(a.telefone||'').replace(/\D/g,'')}"
+           style="font-size:.78rem;color:var(--cinza);text-decoration:none;"
+           aria-label="Ligar para ${a.nome_cliente}: ${a.telefone}">
+          ${escHtml(a.telefone||'–')}
+        </a>
+      </td>
+      <td data-col="Serviço">
+        <div class="td-label" aria-hidden="true">Serviço</div>
+        ${escHtml(srv)}
+      </td>
+      <td data-col="Data">
+        <div class="td-label" aria-hidden="true">Data</div>
+        ${dataFmt}
+      </td>
+      <td data-col="Horário">
+        <div class="td-label" aria-hidden="true">Horário</div>
+        <strong>${escHtml(a.horario||'–')}</strong>
+      </td>
+      <td data-col="Status">
+        <div class="td-label" aria-hidden="true">Status</div>
+        <span class="badge ${sc.classe}" aria-label="Status: ${sc.label}">${sc.label}</span>
+      </td>
+      <td data-col="Ações">
+        <div class="td-label" aria-hidden="true">Ações disponíveis</div>
+        <div class="acoes" role="group" aria-label="Ações para agendamento ${a.codigo} de ${a.nome_cliente}">
+          <button class="btn-acao btn-detalhe" type="button"
+            aria-label="Ver detalhes completos do agendamento ${a.codigo} de ${a.nome_cliente}"
+            onclick="abrirModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+            📋 Detalhes
+          </button>
+          <a href="https://wa.me/55${(a.telefone||'').replace(/\D/g,'')}"
+             target="_blank" rel="noopener"
+             class="btn-acao btn-wa"
+             aria-label="Abrir WhatsApp de ${a.nome_cliente}, telefone ${a.telefone}">
+            💬 WhatsApp
+          </a>
+          ${a.status!=='concluido'&&a.status!=='cancelado'?`
+          <button class="btn-acao btn-concluir" type="button"
+            aria-label="Marcar agendamento ${a.codigo} de ${a.nome_cliente} como concluído"
+            onclick="mudarStatus('${a.id}','concluido','${escHtml(a.nome_cliente)}')">
+            ✅ Concluir
+          </button>`:''
+          }
+          ${a.status!=='cancelado'?`
+          <button class="btn-acao btn-cancelar" type="button"
+            aria-label="Cancelar agendamento ${a.codigo} de ${a.nome_cliente}"
+            onclick="confirmarCancelamento('${a.id}','${escHtml(a.nome_cliente)}')">
+            ✕ Cancelar
+          </button>`:''}
+        </div>
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+
+  renderPaginacao(total);
+}
+
+// ══════════════════════════════════════
+// PAGINAÇÃO
+// ══════════════════════════════════════
+function renderPaginacao(total) {
+  const nav=document.getElementById('paginacao');
+  const totalPags=Math.ceil(total/POR_PAGINA);
+  if(totalPags<=1){nav.innerHTML='';return;}
+  nav.innerHTML='';
+  // Info
+  const info=document.createElement('span');
+  info.className='pag-info';
+  info.textContent=`Página ${paginaAtual} de ${totalPags}`;
+  info.setAttribute('aria-live','polite');
+
+  // Anterior
+  const ant=document.createElement('button');
+  ant.className='btn-pag'; ant.textContent='‹';
+  ant.setAttribute('aria-label',`Ir para página anterior, página ${paginaAtual-1}`);
+  ant.disabled=paginaAtual===1;
+  ant.addEventListener('click',()=>{paginaAtual--;renderTabela();window.scrollTo({top:0,behavior:'smooth'});anunciar(`Página ${paginaAtual} de ${totalPags}.`);});
+
+  nav.appendChild(ant);
+
+  // Páginas
+  for(let i=1;i<=totalPags;i++){
+    if(totalPags>7&&Math.abs(i-paginaAtual)>2&&i!==1&&i!==totalPags){
+      if(i===2||i===totalPags-1){const sep=document.createElement('span');sep.textContent='…';sep.setAttribute('aria-hidden','true');nav.appendChild(sep);}
+      continue;
+    }
+    const btn=document.createElement('button');
+    btn.className='btn-pag'; btn.textContent=i;
+    btn.setAttribute('aria-label',`Ir para página ${i}${i===paginaAtual?', página atual':''}`);
+    if(i===paginaAtual)btn.setAttribute('aria-current','true');
+    btn.addEventListener('click',()=>{paginaAtual=i;renderTabela();window.scrollTo({top:0,behavior:'smooth'});anunciar(`Página ${i} de ${totalPags}.`);});
+    nav.appendChild(btn);
+  }
+
+  nav.appendChild(info);
+
+  // Próximo
+  const prox=document.createElement('button');
+  prox.className='btn-pag'; prox.textContent='›';
+  prox.setAttribute('aria-label',`Ir para próxima página, página ${paginaAtual+1}`);
+  prox.disabled=paginaAtual===totalPags;
+  prox.addEventListener('click',()=>{paginaAtual++;renderTabela();window.scrollTo({top:0,behavior:'smooth'});anunciar(`Página ${paginaAtual} de ${totalPags}.`);});
+  nav.appendChild(prox);
+}
+
+// ══════════════════════════════════════
+// MODAL DETALHES
+// ══════════════════════════════════════
+function abrirModal(a) {
+  agendamentoSelecionado=a;
+  const sc=STATUS_CONFIG[a.status]||STATUS_CONFIG.pendente;
+  const srv=SERVICO_LABEL[a.servico]||a.servico||'–';
+  const[y,m,d]=(a.data||'0000-00-00').split('-');
+  const dataFmt=`${d}/${m}/${y}`;
+
+  document.getElementById('modal-body').innerHTML=`
+    <div role="list" aria-label="Detalhes completos do agendamento ${a.codigo}">
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">Código</span>
+        <span class="detalhe-valor" aria-label="Código do agendamento: ${a.codigo}">${escHtml(a.codigo||'–')}</span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">Status</span>
+        <span class="badge ${sc.classe}" aria-label="Status atual: ${sc.label}">${sc.label}</span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">Cliente</span>
+        <span class="detalhe-valor">${escHtml(a.nome_cliente||'–')}</span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">WhatsApp</span>
+        <span class="detalhe-valor">
+          <a href="tel:${(a.telefone||'').replace(/\D/g,'')}"
+             aria-label="Ligar para ${a.nome_cliente}: ${a.telefone}">${escHtml(a.telefone||'–')}</a>
+        </span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">E-mail</span>
+        <span class="detalhe-valor">${escHtml(a.email||'Não informado')}</span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">Serviço</span>
+        <span class="detalhe-valor">${escHtml(srv)}</span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">Data</span>
+        <span class="detalhe-valor">${dataFmt}</span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">Horário</span>
+        <span class="detalhe-valor">${escHtml(a.horario||'–')}</span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">Observações</span>
+        <span class="detalhe-valor">${escHtml(a.observacoes||'Nenhuma')}</span>
+      </div>
+      <div class="detalhe-item" role="listitem">
+        <span class="detalhe-label">Criado em</span>
+        <span class="detalhe-valor">${fmtDataHora(a.criado_em)}</span>
+      </div>
+    </div>
+  `;
+
+  // Mensagem WA para o cliente
+  const msgCliente=
+    `Olá, ${a.nome_cliente}! 👋\n\n`+
+    `Confirmamos seu agendamento:\n`+
+    `💆 *${srv}*\n`+
+    `📅 *${dataFmt}* às *${a.horario}*\n\n`+
+    `📍 Rua Jaguaré, 147A – Vale Encantado\n\n`+
+    `Em caso de dúvidas ou cancelamento, entre em contato com até 2h de antecedência.\n`+
+    `Até lá! 🌿 _Espaço Bem-Estar_`;
+
+  document.getElementById('modal-acoes').innerHTML=`
+    <a href="https://wa.me/55${(a.telefone||'').replace(/\D/g,'')}&text=${encodeURIComponent(msgCliente)}"
+       target="_blank" rel="noopener"
+       style="background:#25d366;color:#fff;flex:2;"
+       aria-label="Enviar mensagem de confirmação pelo WhatsApp para ${a.nome_cliente} no número ${a.telefone}">
+      💬 Confirmar ao cliente pelo WhatsApp
+    </a>
+    ${a.status!=='concluido'&&a.status!=='cancelado'?`
+    <button type="button" style="background:var(--azul-claro);color:var(--azul);"
+      aria-label="Marcar agendamento de ${a.nome_cliente} como concluído e fechar modal"
+      onclick="mudarStatus('${a.id}','concluido','${escHtml(a.nome_cliente)}',true)">
+      ✅ Concluir
+    </button>`:''}
+    ${a.status!=='cancelado'?`
+    <button type="button" style="background:var(--vermelho-claro);color:var(--vermelho);"
+      aria-label="Cancelar agendamento de ${a.nome_cliente} e fechar modal"
+      onclick="confirmarCancelamento('${a.id}','${escHtml(a.nome_cliente)}',true)">
+      ✕ Cancelar
+    </button>`:''}
+  `;
+
+  const overlay=document.getElementById('modal-overlay');
+  overlay.classList.add('open');
+  overlay.removeAttribute('aria-hidden');
+  document.getElementById('btn-fechar-modal').focus();
+  document.body.style.overflow='hidden';
+  anunciar(`Modal aberto. Detalhes do agendamento ${a.codigo} de ${a.nome_cliente}. ${srv}, ${dataFmt} às ${a.horario}. Status: ${sc.label}.`);
+}
+
+function fecharModal() {
+  const overlay=document.getElementById('modal-overlay');
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+  anunciar('Modal fechado.');
+}
+
+document.getElementById('btn-fechar-modal').addEventListener('click',fecharModal);
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-overlay'))fecharModal();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&document.getElementById('modal-overlay').classList.contains('open'))fecharModal();
+});
+
+// ══════════════════════════════════════
+// MUDAR STATUS
+// ══════════════════════════════════════
+async function mudarStatus(id, novoStatus, nomeCliente, fecharDepois=false) {
+  anunciar(`Atualizando status do agendamento de ${nomeCliente} para ${novoStatus}. Aguarde.`);
+  try {
+    const{error}=await db.from('agendamentos').update({status:novoStatus}).eq('id',id);
+    if(error)throw error;
+    const idx=todosAgendamentos.findIndex(a=>a.id===id);
+    if(idx!==-1)todosAgendamentos[idx].status=novoStatus;
+    aplicarFiltros();
+    atualizarEstatisticas();
+    const label=STATUS_CONFIG[novoStatus]?.label||novoStatus;
+    showToast(`✅ Agendamento de ${nomeCliente} marcado como ${label}.`,'ok');
+    anunciar(`Agendamento de ${nomeCliente} atualizado para ${label} com sucesso.`);
+    if(fecharDepois)fecharModal();
+  } catch(e) {
+    console.error(e);
+    showToast('Erro ao atualizar status. Tente novamente.','erro');
+    anunciar('Erro ao atualizar o status do agendamento.', true);
+  }
+}
+
+function confirmarCancelamento(id, nomeCliente, fecharDepois=false) {
+  // Confirmação acessível via dialog nativo
+  const confirmou=window.confirm(
+    `Tem certeza que deseja cancelar o agendamento de ${nomeCliente}?\n\nEsta ação pode ser revertida depois se necessário.`
+  );
+  if(confirmou) mudarStatus(id,'cancelado',nomeCliente,fecharDepois);
+  else anunciar('Cancelamento abortado. Nenhuma alteração foi feita.');
+}
+
+// ══════════════════════════════════════
+// UTILITÁRIOS
+// ══════════════════════════════════════
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Trap foco no modal
+document.getElementById('modal-overlay').addEventListener('keydown',e=>{
+  if(e.key!=='Tab')return;
+  const focusables=document.getElementById('modal-overlay').querySelectorAll(
+    'button,a,[tabindex]:not([tabindex="-1"]),input,select,textarea'
+  );
+  const first=focusables[0], last=focusables[focusables.length-1];
+  if(e.shiftKey){if(document.activeElement===first){e.preventDefault();last.focus();}}
+  else{if(document.activeElement===last){e.preventDefault();first.focus();}}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espaço Bem-Estar | Agenda Aberta</title>
+  <meta name="description" content="Agende sua massagem relaxante, drenagem linfática ou massagem desportiva. (27) 99818-2007.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--verde:#1a6b4a;--verde-claro:#2e9668;--verde-palido:#d4ede3;--navy:#1a2744;--creme:#faf8f4;--branco:#ffffff;--cinza:#6b7280;--sombra:rgba(26,107,74,0.15);--radius:20px}
+    html{scroll-behavior:smooth;font-size:16px}
+    body{font-family:'DM Sans',sans-serif;background:var(--creme);color:var(--navy);line-height:1.6}
+    .skip-link{position:absolute;top:-100px;left:1rem;background:var(--verde);color:#fff;padding:.75rem 1.5rem;border-radius:0 0 8px 8px;font-weight:600;z-index:9999;text-decoration:none;transition:top .2s}
+    .skip-link:focus{top:0}
+    *:focus-visible{outline:3px solid #f59e0b;outline-offset:3px;border-radius:4px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    #live-region{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+    @media(prefers-contrast:high){:root{--verde:#005c35;--navy:#000;--creme:#fff}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+    /* HEADER */
+    header{background:var(--branco);border-bottom:1px solid var(--verde-palido);position:sticky;top:0;z-index:100;padding:0 1.5rem}
+    nav{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:70px;gap:1rem}
+    .logo{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--verde);text-decoration:none}
+    .logo span{color:var(--navy)}
+    .nav-links{display:flex;gap:.25rem;list-style:none}
+    .nav-links a{text-decoration:none;color:var(--navy);font-weight:500;padding:.5rem .75rem;border-radius:8px;font-size:.95rem;transition:background .2s,color .2s}
+    .nav-links a:hover{background:var(--verde-palido);color:var(--verde)}
+    .btn-nav{background:var(--verde)!important;color:var(--branco)!important;border-radius:50px!important;font-weight:600!important}
+    .btn-nav:hover{background:var(--navy)!important}
+
+    /* HERO */
+    #inicio{background:linear-gradient(135deg,var(--verde) 0%,var(--verde-claro) 60%,#4db37e 100%);color:var(--branco);padding:5rem 1.5rem 4rem;position:relative;overflow:hidden}
+    #inicio::before{content:'';position:absolute;top:-80px;right:-80px;width:350px;height:350px;background:rgba(255,255,255,.07);border-radius:50%}
+    .hero-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;position:relative;z-index:1}
+    .hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:.4rem 1rem;border-radius:50px;font-size:.85rem;font-weight:500;margin-bottom:1rem}
+    h1{font-family:'Playfair Display',serif;font-size:clamp(2.4rem,5vw,3.8rem);line-height:1.15;margin-bottom:1.25rem}
+    h1 em{font-style:italic;color:#b2ffd8}
+    .hero-desc{font-size:1.1rem;opacity:.92;margin-bottom:2rem;max-width:420px}
+    .hero-ctas{display:flex;flex-wrap:wrap;gap:1rem;align-items:center}
+    .btn-primary{background:var(--branco);color:var(--verde);border:none;padding:.85rem 2rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.2)}
+    .btn-outline-white{background:transparent;color:var(--branco);border:2px solid rgba(255,255,255,.6);padding:.85rem 1.75rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;transition:background .2s}
+    .btn-outline-white:hover{background:rgba(255,255,255,.1)}
+    .hero-phone{margin-top:1.75rem;display:flex;align-items:center;gap:.75rem}
+    .hero-phone a{color:#b2ffd8;font-weight:700;font-size:1.2rem;text-decoration:none}
+    .hero-phone a:hover{text-decoration:underline}
+    .hero-img-wrap{display:flex;justify-content:flex-end}
+    .hero-img-card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:24px;padding:1.5rem;backdrop-filter:blur(8px);max-width:380px;width:100%}
+    .hero-img-placeholder{background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,255,255,.05));border-radius:16px;height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;color:rgba(255,255,255,.7);font-size:4rem;text-align:center}
+    .hero-img-placeholder p{font-size:.9rem;font-weight:500}
+    .hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-top:1rem}
+    .stat{text-align:center;background:rgba(255,255,255,.1);border-radius:12px;padding:.75rem .5rem}
+    .stat strong{display:block;font-size:1.3rem;color:#b2ffd8}
+    .stat span{font-size:.75rem;opacity:.8}
+
+    /* SERVIÇOS */
+    #servicos{padding:5rem 1.5rem;background:var(--branco)}
+    .section-header{text-align:center;max-width:600px;margin:0 auto 3rem}
+    .section-tag{display:inline-block;background:var(--verde-palido);color:var(--verde);font-size:.8rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.3rem 1rem;border-radius:50px;margin-bottom:.75rem}
+    h2{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,4vw,2.8rem);color:var(--navy);margin-bottom:.75rem}
+    .section-sub{color:var(--cinza);font-size:1rem}
+    .servicos-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem}
+    .servico-card{background:var(--creme);border-radius:var(--radius);padding:2rem;border:2px solid transparent;transition:border-color .2s,box-shadow .2s,transform .2s}
+    .servico-card:hover,.servico-card:focus-within{border-color:var(--verde);box-shadow:0 8px 32px var(--sombra);transform:translateY(-4px)}
+    .servico-icon{font-size:2.5rem;margin-bottom:1rem;background:var(--verde-palido);width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center}
+    .servico-card h3{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--navy);margin-bottom:.5rem}
+    .servico-card p{color:var(--cinza);font-size:.95rem;margin-bottom:1.25rem}
+    .servico-preco{font-size:1rem;font-weight:700;color:var(--verde);display:flex;align-items:center;gap:.5rem}
+    .servico-duracao{font-size:.82rem;color:var(--cinza);background:var(--verde-palido);padding:.2rem .6rem;border-radius:50px;font-weight:500}
+    .btn-servico{display:inline-flex;align-items:center;gap:.4rem;background:var(--verde);color:var(--branco);border:none;padding:.65rem 1.4rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;text-decoration:none;margin-top:1rem;transition:background .2s,transform .2s}
+    .btn-servico:hover{background:var(--navy);transform:translateY(-1px)}
+
+    /* AGENDAMENTO */
+    #agendamento{padding:5rem 1.5rem;background:linear-gradient(180deg,var(--verde-palido) 0%,var(--creme) 100%)}
+    .agend-wrap{max-width:780px;margin:0 auto}
+    .form-card{background:var(--branco);border-radius:28px;padding:2.5rem;box-shadow:0 20px 60px var(--sombra)}
+    .stepper{display:flex;align-items:center;margin-bottom:2.5rem}
+    .step{display:flex;flex-direction:column;align-items:center;gap:.35rem;flex:1;position:relative}
+    .step::after{content:'';position:absolute;top:18px;left:60%;width:80%;height:2px;background:var(--verde-palido)}
+    .step:last-child::after{display:none}
+    .step.done::after{background:var(--verde)}
+    .step-num{width:36px;height:36px;border-radius:50%;background:var(--verde-palido);color:var(--verde);font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center;border:2px solid var(--verde-palido);transition:all .3s;position:relative;z-index:1}
+    .step[aria-current="true"] .step-num{background:var(--verde);color:var(--branco);border-color:var(--verde)}
+    .step.done .step-num{background:var(--verde);color:var(--branco);border-color:var(--verde)}
+    .step-label{font-size:.75rem;font-weight:500;color:var(--cinza);text-align:center}
+    .step[aria-current="true"] .step-label{color:var(--verde);font-weight:700}
+    .form-panel{display:none}
+    .form-panel.active{display:block;animation:fadeIn .3s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    .panel-title{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--navy);margin-bottom:.5rem}
+    .panel-sub{color:var(--cinza);font-size:.92rem;margin-bottom:1.75rem}
+    .form-group{margin-bottom:1.25rem}
+    .form-group label{display:block;font-weight:600;font-size:.9rem;color:var(--navy);margin-bottom:.45rem}
+    .req{color:#dc2626;margin-left:.2rem;font-size:.8rem}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:.85rem 1rem;border:2px solid #e5e7eb;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1rem;color:var(--navy);background:var(--creme);transition:border-color .2s,box-shadow .2s;appearance:none}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--verde);outline:none;box-shadow:0 0 0 3px rgba(26,107,74,.15)}
+    .form-group input[aria-invalid="true"],.form-group select[aria-invalid="true"]{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+    .field-error{color:#dc2626;font-size:.82rem;margin-top:.35rem;font-weight:500;display:none;align-items:center;gap:.3rem}
+    .field-error.visible{display:flex}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .servico-radio-group{display:grid;grid-template-columns:1fr;gap:.75rem;list-style:none}
+    .servico-radio-item label{display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;border-radius:14px;border:2px solid #e5e7eb;cursor:pointer;font-weight:400;margin:0;transition:border-color .2s,background .2s}
+    .servico-radio-item input[type="radio"]{width:20px;height:20px;min-width:20px;accent-color:var(--verde);cursor:pointer}
+    .servico-radio-item:has(input:checked) label{border-color:var(--verde);background:var(--verde-palido)}
+    .radio-label-wrap strong{display:block;color:var(--navy)}
+    .radio-label-wrap small{color:var(--cinza);font-size:.82rem}
+    .radio-icon{font-size:1.5rem}
+    .calendar-wrap{margin-bottom:1.5rem}
+    .calendar-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+    .calendar-header h3{font-size:1rem;font-weight:600;color:var(--navy)}
+    .cal-nav{background:var(--verde-palido);border:none;width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;color:var(--verde);display:flex;align-items:center;justify-content:center;transition:background .2s}
+    .cal-nav:hover{background:var(--verde);color:var(--branco)}
+    .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px}
+    .cal-weekdays span{text-align:center;font-size:.75rem;font-weight:600;color:var(--cinza);padding:.25rem}
+    .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+    .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:10px;font-size:.88rem;cursor:pointer;border:2px solid transparent;font-family:'DM Sans',sans-serif;font-weight:500;background:transparent;color:var(--navy);transition:all .15s}
+    .cal-day:hover:not(:disabled){background:var(--verde-palido);color:var(--verde)}
+    .cal-day:disabled{color:#d1d5db;cursor:not-allowed}
+    .cal-day.selected{background:var(--verde);color:var(--branco);border-color:var(--verde)}
+    .cal-day.today{border-color:var(--verde);color:var(--verde);font-weight:700}
+    .horarios-label{font-weight:600;font-size:.9rem;color:var(--navy);margin-bottom:.6rem;display:block}
+    .horarios-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem}
+    .horario-btn{background:var(--creme);border:2px solid #e5e7eb;border-radius:10px;padding:.55rem .25rem;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;color:var(--navy);cursor:pointer;transition:all .15s}
+    .horario-btn:hover:not(:disabled){border-color:var(--verde);color:var(--verde);background:var(--verde-palido)}
+    .horario-btn:disabled{color:#d1d5db;cursor:not-allowed;border-color:#f3f4f6;background:#f9fafb}
+    .horario-btn[aria-pressed="true"]{background:var(--verde);color:var(--branco);border-color:var(--verde)}
+    .resumo-card{background:var(--verde-palido);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem}
+    .resumo-card h3{font-size:1rem;font-weight:700;color:var(--verde);margin-bottom:1rem}
+    .resumo-item{display:flex;justify-content:space-between;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid rgba(26,107,74,.15);gap:1rem}
+    .resumo-item:last-child{border:none;padding-bottom:0}
+    .resumo-item span:first-child{color:var(--cinza);font-size:.88rem}
+    .resumo-item span:last-child{font-weight:600;color:var(--navy);font-size:.92rem;text-align:right}
+    .confirm-check{display:flex;align-items:flex-start;gap:.75rem;padding:1rem;background:var(--creme);border-radius:12px;border:2px solid #e5e7eb;margin-bottom:1.25rem}
+    .confirm-check input[type="checkbox"]{width:20px;height:20px;min-width:20px;margin-top:1px;accent-color:var(--verde);cursor:pointer}
+    .confirm-check label{font-size:.88rem;color:var(--cinza);cursor:pointer;margin:0;font-weight:400}
+    .form-nav{display:flex;justify-content:space-between;align-items:center;margin-top:1.75rem;gap:1rem}
+    .btn-back{background:var(--creme);color:var(--navy);border:2px solid #e5e7eb;padding:.8rem 1.75rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:border-color .2s}
+    .btn-back:hover{border-color:var(--navy)}
+    .btn-next,.btn-submit{background:var(--verde);color:var(--branco);border:none;padding:.8rem 2rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:background .2s,transform .2s}
+    .btn-next:hover,.btn-submit:hover{background:var(--navy);transform:translateY(-1px)}
+    .btn-next:disabled,.btn-submit:disabled{background:#9ca3af;cursor:not-allowed;transform:none}
+    .spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* SUCESSO */
+    .sucesso-panel{text-align:center;padding:2rem 1rem;display:none}
+    .sucesso-panel.active{display:block;animation:fadeIn .4s ease}
+    .sucesso-icon{font-size:4rem;margin-bottom:1rem}
+    .sucesso-panel h2{color:var(--verde);margin-bottom:.5rem}
+    .sucesso-panel p{color:var(--cinza);margin-bottom:1.5rem}
+    .sucesso-codigo{background:var(--verde-palido);border-radius:12px;padding:1rem 1.5rem;display:inline-block;font-size:1.4rem;font-weight:700;color:var(--verde);letter-spacing:.1em;margin-bottom:1rem}
+
+    /* BOTÃO WA SUCESSO */
+    .wa-btns{display:flex;flex-direction:column;gap:.75rem;max-width:400px;margin:1.25rem auto}
+    .btn-wa-cliente{background:#25d366;color:#fff;border:none;padding:1rem 1.5rem;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:.6rem;transition:background .2s,transform .2s;box-shadow:0 4px 16px rgba(37,211,102,.35)}
+    .btn-wa-cliente:hover{background:#1da851;transform:translateY(-2px)}
+    .btn-wa-info{font-size:.8rem;color:var(--cinza);text-align:center;margin-top:.25rem}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--navy);color:#fff;padding:.85rem 1.75rem;border-radius:50px;font-size:.9rem;font-weight:500;z-index:999;transition:transform .3s;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:90vw;text-align:center}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast.error{background:#dc2626}
+    .toast.success{background:var(--verde)}
+
+    /* CONTATO */
+    #contato{padding:5rem 1.5rem;background:var(--navy);color:var(--branco)}
+    .contato-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start}
+    #contato h2{color:var(--branco)}
+    #contato .section-sub{color:rgba(255,255,255,.65)}
+    .contato-itens{margin-top:2rem;display:flex;flex-direction:column;gap:1.25rem}
+    .contato-item{display:flex;align-items:flex-start;gap:1rem}
+    .contato-item-icon{width:48px;height:48px;min-width:48px;background:rgba(255,255,255,.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+    .contato-item-info strong{display:block;color:rgba(255,255,255,.5);font-size:.78rem;font-weight:500;margin-bottom:.2rem}
+    .contato-item-info a,.contato-item-info p{color:var(--branco);font-size:1rem;font-weight:600;text-decoration:none}
+    .contato-item-info a:hover{color:#b2ffd8}
+    .horario-tabela{margin-top:2rem}
+    .horario-tabela h3{font-size:.9rem;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem}
+    .horario-row{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:.9rem}
+    .horario-row:last-child{border:none}
+    .horario-row span:last-child{color:#b2ffd8;font-weight:600}
+    footer{background:#0f1829;color:rgba(255,255,255,.5);padding:1.5rem;text-align:center;font-size:.85rem}
+    footer a{color:#b2ffd8;text-decoration:none}
+    .whatsapp-float{position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;background:#25d366;color:var(--branco);width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.75rem;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.4);transition:transform .2s;animation:pulse 2.5s infinite}
+    .whatsapp-float:hover{transform:scale(1.1);animation:none}
+    @keyframes pulse{0%,100%{box-shadow:0 4px 20px rgba(37,211,102,.4)}50%{box-shadow:0 4px 32px rgba(37,211,102,.7)}}
+    @media(max-width:768px){.hero-inner{grid-template-columns:1fr}.hero-img-wrap{display:none}.form-row{grid-template-columns:1fr}.horarios-grid{grid-template-columns:repeat(3,1fr)}.contato-inner{grid-template-columns:1fr;gap:2rem}.nav-links{display:none}.servicos-grid{grid-template-columns:1fr}}
+    @media(max-width:480px){.horarios-grid{grid-template-columns:repeat(2,1fr)}.hero-stats{display:none}.form-card{padding:1.5rem}}
+  </style>
+</head>
+<body>
+<div id="live-region" aria-live="polite" aria-atomic="true" role="status"></div>
+<div class="toast" id="toast" role="alert" aria-live="assertive"></div>
+<a class="skip-link" href="#main-content">Pular para conteúdo principal</a>
+<a class="skip-link" href="#agendamento">Pular para agendamento</a>
+
+<header role="banner">
+  <nav aria-label="Navegação principal">
+    <a href="#inicio" class="logo" aria-label="Espaço Bem-Estar, página inicial">Espaço<span> Bem-Estar</span></a>
+    <ul class="nav-links" role="list">
+      <li><a href="#inicio" aria-current="page">Início</a></li>
+      <li><a href="#servicos">Serviços</a></li>
+      <li><a href="#agendamento">Agendar</a></li>
+      <li><a href="#contato">Contato</a></li>
+      <li><a href="#agendamento" class="btn-nav">Agendar agora →</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main-content">
+<section id="inicio" aria-labelledby="hero-titulo">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-badge" aria-hidden="true">● Agenda aberta agora</div>
+      <h1 id="hero-titulo">Seu momento de<br><em>cuidado e bem-estar</em><br>começa aqui</h1>
+      <p class="hero-desc">Massagens terapêuticas, drenagem linfática e muito mais. Profissionais especializados em Vale Encantado.</p>
+      <div class="hero-ctas">
+        <a href="#agendamento" class="btn-primary" aria-label="Ir para agendamento online">📅 Agendar minha sessão</a>
+        <a href="tel:+5527998182007" class="btn-outline-white" aria-label="Ligar para (27) 99818-2007">📞 Ligar agora</a>
+      </div>
+      <div class="hero-phone">
+        <span aria-hidden="true">📱</span>
+        <div><span>WhatsApp e chamadas:</span><br>
+          <a href="https://wa.me/5527998182007" aria-label="Abrir WhatsApp (27) 99818-2007">(27) 99818-2007</a>
+        </div>
+      </div>
+    </div>
+    <div class="hero-img-wrap" aria-hidden="true">
+      <div class="hero-img-card">
+        <div class="hero-img-placeholder"><span>🧘</span><p>Espaço Bem-Estar<br>Vale Encantado</p></div>
+        <div class="hero-stats">
+          <div class="stat"><strong>500+</strong><span>Clientes</span></div>
+          <div class="stat"><strong>5★</strong><span>Avaliação</span></div>
+          <div class="stat"><strong>3</strong><span>Serviços</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="servicos" aria-labelledby="servicos-titulo">
+  <div class="section-header">
+    <span class="section-tag" aria-hidden="true">Nossos serviços</span>
+    <h2 id="servicos-titulo">Tratamentos disponíveis</h2>
+    <p class="section-sub">Cada sessão é pensada para o seu bem-estar completo.</p>
+  </div>
+  <div class="servicos-grid" role="list">
+    <article class="servico-card" role="listitem" aria-labelledby="s1-titulo">
+      <div class="servico-icon" aria-hidden="true">🌿</div>
+      <h3 id="s1-titulo">Massagem Relaxante</h3>
+      <p>Técnica suave para aliviar tensões musculares, reduzir o estresse e promover relaxamento profundo.</p>
+      <div class="servico-preco"><span>A partir de R$ 80</span><span class="servico-duracao" aria-label="60 minutos">⏱ 60 min</span></div>
+      <a href="#agendamento" class="btn-servico" data-servico="relaxante" aria-label="Agendar Massagem Relaxante">Agendar →</a>
+    </article>
+    <article class="servico-card" role="listitem" aria-labelledby="s2-titulo">
+      <div class="servico-icon" aria-hidden="true">💧</div>
+      <h3 id="s2-titulo">Drenagem Linfática</h3>
+      <p>Estimula o sistema linfático, reduz inchaços, elimina toxinas e melhora a circulação.</p>
+      <div class="servico-preco"><span>A partir de R$ 100</span><span class="servico-duracao" aria-label="60 minutos">⏱ 60 min</span></div>
+      <a href="#agendamento" class="btn-servico" data-servico="drenagem" aria-label="Agendar Drenagem Linfática">Agendar →</a>
+    </article>
+    <article class="servico-card" role="listitem" aria-labelledby="s3-titulo">
+      <div class="servico-icon" aria-hidden="true">🏃</div>
+      <h3 id="s3-titulo">Massagem Desportiva</h3>
+      <p>Auxilia na recuperação muscular, previne lesões e melhora a performance para atletas.</p>
+      <div class="servico-preco"><span>A partir de R$ 90</span><span class="servico-duracao" aria-label="50 minutos">⏱ 50 min</span></div>
+      <a href="#agendamento" class="btn-servico" data-servico="desportiva" aria-label="Agendar Massagem Desportiva">Agendar →</a>
+    </article>
+  </div>
+</section>
+
+<section id="agendamento" aria-labelledby="agend-titulo">
+  <div class="agend-wrap">
+    <div class="section-header">
+      <span class="section-tag" aria-hidden="true">Agendamento online</span>
+      <h2 id="agend-titulo">Agende sua sessão</h2>
+      <p class="section-sub">Simples, rápido e com confirmação pelo WhatsApp!</p>
+    </div>
+    <div class="form-card">
+      <nav class="stepper" aria-label="Progresso do agendamento, 3 passos">
+        <div class="step" id="step-nav-1" aria-current="true" aria-label="Passo 1 de 3: Dados e serviço, etapa atual">
+          <div class="step-num" aria-hidden="true">1</div>
+          <span class="step-label">Serviço</span>
+        </div>
+        <div class="step" id="step-nav-2" aria-label="Passo 2 de 3: Data e horário">
+          <div class="step-num" aria-hidden="true">2</div>
+          <span class="step-label">Data e Hora</span>
+        </div>
+        <div class="step" id="step-nav-3" aria-label="Passo 3 de 3: Confirmar">
+          <div class="step-num" aria-hidden="true">3</div>
+          <span class="step-label">Confirmar</span>
+        </div>
+      </nav>
+
+      <!-- PASSO 1 -->
+      <div class="form-panel active" id="panel-1" role="group" aria-labelledby="p1-titulo">
+        <h2 class="panel-title" id="p1-titulo">Seus dados e serviço</h2>
+        <p class="panel-sub">Preencha seus dados e escolha o tratamento desejado.</p>
+        <fieldset style="border:none;padding:0;margin-bottom:1.25rem;" aria-labelledby="srv-legend">
+          <legend id="srv-legend" style="font-weight:600;font-size:.9rem;color:var(--navy);margin-bottom:.6rem;">
+            Tipo de massagem <span class="req" aria-hidden="true">*</span><span class="sr-only">obrigatório</span>
+          </legend>
+          <ul class="servico-radio-group" role="list">
+            <li class="servico-radio-item">
+              <label><input type="radio" name="servico" value="relaxante" id="srv-relaxante" aria-required="true">
+                <span class="radio-icon" aria-hidden="true">🌿</span>
+                <span class="radio-label-wrap"><strong>Massagem Relaxante</strong><small>60 min · A partir de R$ 80</small></span>
+              </label>
+            </li>
+            <li class="servico-radio-item">
+              <label><input type="radio" name="servico" value="drenagem" id="srv-drenagem">
+                <span class="radio-icon" aria-hidden="true">💧</span>
+                <span class="radio-label-wrap"><strong>Drenagem Linfática</strong><small>60 min · A partir de R$ 100</small></span>
+              </label>
+            </li>
+            <li class="servico-radio-item">
+              <label><input type="radio" name="servico" value="desportiva" id="srv-desportiva">
+                <span class="radio-icon" aria-hidden="true">🏃</span>
+                <span class="radio-label-wrap"><strong>Massagem Desportiva</strong><small>50 min · A partir de R$ 90</small></span>
+              </label>
+            </li>
+          </ul>
+          <div class="field-error" id="err-servico" role="alert" aria-live="assertive">⚠ Selecione um serviço.</div>
+        </fieldset>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nome">Nome completo <span class="req" aria-hidden="true">*</span><span class="sr-only">obrigatório</span></label>
+            <input type="text" id="nome" autocomplete="name" placeholder="Seu nome completo" aria-required="true" aria-describedby="err-nome">
+            <div class="field-error" id="err-nome" role="alert" aria-live="assertive">⚠ Informe seu nome completo.</div>
+          </div>
+          <div class="form-group">
+            <label for="telefone">WhatsApp <span class="req" aria-hidden="true">*</span><span class="sr-only">obrigatório, número que receberá a confirmação</span></label>
+            <input type="tel" id="telefone" autocomplete="tel" placeholder="(27) 99999-9999" aria-required="true" aria-describedby="err-telefone telefone-hint">
+            <div id="telefone-hint" style="font-size:.78rem;color:var(--cinza);margin-top:.3rem;">A confirmação será enviada para este número</div>
+            <div class="field-error" id="err-telefone" role="alert" aria-live="assertive">⚠ Informe um WhatsApp válido com DDD.</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="email">E-mail <span style="color:var(--cinza);font-weight:400;font-size:.82rem;">(opcional)</span></label>
+          <input type="email" id="email" autocomplete="email" placeholder="seuemail@exemplo.com">
+        </div>
+        <div class="form-group">
+          <label for="obs">Observações <span style="color:var(--cinza);font-weight:400;font-size:.82rem;">(opcional)</span></label>
+          <textarea id="obs" rows="3" placeholder="Alergias, lesões ou cuidados especiais..." style="resize:vertical;"></textarea>
+        </div>
+        <div class="form-nav">
+          <span></span>
+          <button class="btn-next" id="btn-p1" type="button" aria-label="Avançar para escolher data e horário">
+            Próximo: Data e Hora <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PASSO 2 -->
+      <div class="form-panel" id="panel-2" role="group" aria-labelledby="p2-titulo">
+        <h2 class="panel-title" id="p2-titulo">Escolha a data e horário</h2>
+        <p class="panel-sub">Use as setas para navegar entre os meses e escolha um dia disponível.</p>
+        <div class="calendar-wrap" role="group" aria-label="Calendário para seleção de data">
+          <div class="calendar-header">
+            <button class="cal-nav" id="prev-month" type="button" aria-label="Mês anterior">‹</button>
+            <h3 id="cal-month-label" aria-live="polite" aria-atomic="true"></h3>
+            <button class="cal-nav" id="next-month" type="button" aria-label="Próximo mês">›</button>
+          </div>
+          <div class="cal-weekdays" aria-hidden="true">
+            <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+          </div>
+          <div class="cal-days" id="cal-days" role="grid" aria-label="Dias disponíveis para agendamento"></div>
+          <div class="field-error" id="err-data" role="alert" aria-live="assertive">⚠ Selecione uma data.</div>
+        </div>
+        <div role="group" aria-labelledby="horarios-label">
+          <span class="horarios-label" id="horarios-label">Horários disponíveis</span>
+          <div id="horarios-loading" style="color:var(--cinza);font-size:.9rem;padding:.5rem 0;display:none;" aria-live="polite" role="status">Carregando horários disponíveis...</div>
+          <div class="horarios-grid" id="horarios-grid" aria-label="Selecione um horário"></div>
+          <div class="field-error" id="err-horario" role="alert" aria-live="assertive">⚠ Selecione um horário.</div>
+        </div>
+        <div class="form-nav">
+          <button class="btn-back" id="btn-back-1" type="button" aria-label="Voltar para dados e serviço">← Voltar</button>
+          <button class="btn-next" id="btn-p2" type="button" aria-label="Avançar para confirmação">
+            Próximo: Confirmar <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PASSO 3 -->
+      <div class="form-panel" id="panel-3" role="group" aria-labelledby="p3-titulo">
+        <h2 class="panel-title" id="p3-titulo">Confirme seu agendamento</h2>
+        <p class="panel-sub">Verifique os dados. Ao confirmar, você será direcionado ao WhatsApp para enviar a confirmação.</p>
+        <div class="resumo-card" role="region" aria-label="Resumo do agendamento">
+          <h3>📋 Resumo da sessão</h3>
+          <div class="resumo-item"><span>Serviço</span><span id="res-servico">–</span></div>
+          <div class="resumo-item"><span>Cliente</span><span id="res-nome">–</span></div>
+          <div class="resumo-item"><span>WhatsApp</span><span id="res-telefone">–</span></div>
+          <div class="resumo-item"><span>Data</span><span id="res-data">–</span></div>
+          <div class="resumo-item"><span>Horário</span><span id="res-horario">–</span></div>
+          <div class="resumo-item"><span>Observações</span><span id="res-obs">Nenhuma</span></div>
+        </div>
+        <div class="confirm-check">
+          <input type="checkbox" id="aceite-termos" aria-required="true" aria-describedby="err-termos">
+          <label for="aceite-termos">Confirmo que os dados estão corretos e entendo que cancelamentos devem ser feitos com pelo menos 2 horas de antecedência pelo WhatsApp (27) 99818-2007.</label>
+        </div>
+        <div class="field-error" id="err-termos" role="alert" aria-live="assertive">⚠ Marque a caixa para confirmar.</div>
+        <div class="form-nav">
+          <button class="btn-back" id="btn-back-2" type="button" aria-label="Voltar para data e horário">← Voltar</button>
+          <button class="btn-submit" id="btn-submit" type="button" aria-label="Salvar agendamento e abrir WhatsApp para confirmação">
+            ✅ Confirmar e ir ao WhatsApp
+          </button>
+        </div>
+      </div>
+
+      <!-- SUCESSO -->
+      <div class="sucesso-panel" id="panel-sucesso" role="region" aria-labelledby="sucesso-titulo" aria-live="polite" tabindex="-1">
+        <div class="sucesso-icon" aria-hidden="true">🎉</div>
+        <h2 id="sucesso-titulo">Agendamento registrado!</h2>
+        <p>Seu horário foi salvo. Agora <strong>envie a confirmação pelo WhatsApp</strong> para garantir sua vaga.</p>
+        <div class="sucesso-codigo" aria-label="Código do seu agendamento, guarde este número">
+          Código: <span id="codigo-agend"></span>
+        </div>
+
+        <div class="wa-btns">
+          <!-- Botão para o CLIENTE confirmar na clínica -->
+          <div>
+            <a id="wa-link-cliente" href="#" target="_blank" rel="noopener"
+               class="btn-wa-cliente"
+               aria-label="Abrir WhatsApp para enviar confirmação do seu agendamento à clínica">
+              💬 Enviar confirmação à clínica
+            </a>
+            <p class="btn-wa-info">Toque aqui para confirmar seu agendamento via WhatsApp</p>
+          </div>
+        </div>
+
+        <p style="margin:1rem 0;color:var(--cinza);font-size:.88rem;">
+          📍 Rua Jaguaré, 147A – Vale Encantado<br>
+          📱 Dúvidas? (27) 99818-2007
+        </p>
+        <button class="btn-back" type="button" id="btn-novo" aria-label="Fazer um novo agendamento">+ Novo agendamento</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contato" aria-labelledby="contato-titulo">
+  <div class="contato-inner">
+    <div>
+      <span class="section-tag" style="background:rgba(255,255,255,.12);color:#b2ffd8;" aria-hidden="true">Onde estamos</span>
+      <h2 id="contato-titulo" style="color:#fff;margin-top:.5rem;">Venha nos visitar</h2>
+      <p class="section-sub">Estamos prontos para proporcionar uma experiência completa de bem-estar.</p>
+      <div class="contato-itens">
+        <div class="contato-item">
+          <div class="contato-item-icon" aria-hidden="true">📍</div>
+          <div class="contato-item-info"><strong>ENDEREÇO</strong><p>Rua Jaguaré, 147A – Vale Encantado</p></div>
+        </div>
+        <div class="contato-item">
+          <div class="contato-item-icon" aria-hidden="true">📱</div>
+          <div class="contato-item-info"><strong>WHATSAPP E CHAMADAS</strong>
+            <a href="https://wa.me/5527998182007" aria-label="Abrir WhatsApp número (27) 99818-2007">(27) 99818-2007</a>
+          </div>
+        </div>
+        <div class="contato-item">
+          <div class="contato-item-icon" aria-hidden="true">📅</div>
+          <div class="contato-item-info"><strong>AGENDAMENTO</strong><p>Online 24h ou pelo WhatsApp</p></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="horario-tabela" aria-label="Tabela de horários de atendimento">
+        <h3>HORÁRIOS DE ATENDIMENTO</h3>
+        <div class="horario-row"><span>Segunda – Sexta</span><span>8h às 20h</span></div>
+        <div class="horario-row"><span>Sábado</span><span>9h às 17h</span></div>
+        <div class="horario-row"><span>Domingo</span><span>9h às 14h</span></div>
+      </div>
+      <div style="margin-top:2.5rem;padding:1.5rem;background:rgba(255,255,255,.06);border-radius:16px;border:1px solid rgba(255,255,255,.1);">
+        <h3 style="color:#b2ffd8;font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.75rem;">Fale conosco agora</h3>
+        <a href="https://wa.me/5527998182007?text=Olá!%20Gostaria%20de%20agendar%20uma%20sessão." class="btn-primary" style="width:100%;justify-content:center;background:#25d366;color:#fff;" aria-label="Abrir WhatsApp para agendar">💬 Agendar pelo WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer role="contentinfo">
+  <p>© 2024 Espaço Bem-Estar – Rua Jaguaré, 147A, Vale Encantado &nbsp;·&nbsp;
+    <a href="tel:+5527998182007" aria-label="Ligar para (27) 99818-2007">(27) 99818-2007</a>
+  </p>
+  <p style="margin-top:.35rem;font-size:.78rem;">Site acessível · Compatível com NVDA, JAWS e VoiceOver</p>
+</footer>
+
+<a href="https://wa.me/5527998182007?text=Olá!%20Gostaria%20de%20agendar." class="whatsapp-float" aria-label="Abrir WhatsApp para falar com a clínica" title="Fale conosco pelo WhatsApp">💬</a>
+
+<script>
+const SUPABASE_URL = 'https://joqkcmiobouhzfjsgsrv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_vg-wiU0uYrZb-5YTqZPiwg_D_nPMnSF';
+const CLINICA_WA  = '5527998182007'; // WhatsApp da clínica
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const state = {
+  step:1, servico:null, nome:'', telefone:'', email:'', obs:'',
+  data:null, horario:null,
+  calYear:new Date().getFullYear(), calMonth:new Date().getMonth()
+};
+const HORARIOS = ['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
+const SERVICO_LABEL = {relaxante:'Massagem Relaxante (60 min)',drenagem:'Drenagem Linfática (60 min)',desportiva:'Massagem Desportiva (50 min)'};
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS_NOME = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+
+function anunciar(msg){
+  const r=document.getElementById('live-region');
+  r.textContent=''; setTimeout(()=>r.textContent=msg,50);
+}
+function showToast(msg,tipo='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${tipo} show`;
+  setTimeout(()=>t.className='toast',4500);
+}
+function toggleError(id,show){
+  const el=document.getElementById(id);
+  show?el.classList.add('visible'):el.classList.remove('visible');
+}
+
+// ── STEPPER ──
+function updateStepper(step){
+  for(let i=1;i<=3;i++){
+    const n=document.getElementById(`step-nav-${i}`);
+    n.removeAttribute('aria-current'); n.classList.remove('done');
+    if(i<step)n.classList.add('done');
+    else if(i===step)n.setAttribute('aria-current','true');
+  }
+}
+function showPanel(n){
+  document.querySelectorAll('.form-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-sucesso').classList.remove('active');
+  const p=document.getElementById(`panel-${n}`);
+  if(p){p.classList.add('active');const t=p.querySelector('.panel-title');if(t){t.setAttribute('tabindex','-1');t.focus();}}
+  state.step=n; updateStepper(n);
+}
+
+// ── VALIDAÇÕES ──
+function validarP1(){
+  let ok=true;
+  const srv=document.querySelector('input[name="servico"]:checked');
+  const nome=document.getElementById('nome').value.trim();
+  const tel=document.getElementById('telefone').value.replace(/\D/g,'');
+  toggleError('err-servico',!srv); if(!srv){document.querySelector('input[name="servico"]').focus();ok=false;}
+  toggleError('err-nome',nome.length<3);
+  if(nome.length<3){document.getElementById('nome').setAttribute('aria-invalid','true');if(ok)document.getElementById('nome').focus();ok=false;}
+  else document.getElementById('nome').removeAttribute('aria-invalid');
+  toggleError('err-telefone',tel.length<10);
+  if(tel.length<10){document.getElementById('telefone').setAttribute('aria-invalid','true');if(ok)document.getElementById('telefone').focus();ok=false;}
+  else document.getElementById('telefone').removeAttribute('aria-invalid');
+  if(!ok)anunciar('Há campos obrigatórios não preenchidos. Verifique os erros destacados na tela.');
+  return ok;
+}
+function validarP2(){
+  let ok=true;
+  toggleError('err-data',!state.data); if(!state.data)ok=false;
+  toggleError('err-horario',!state.horario); if(!state.horario)ok=false;
+  if(!ok)anunciar('Selecione uma data e um horário para continuar.');
+  return ok;
+}
+
+// ── CALENDÁRIO ──
+function renderCalendar(){
+  const{calYear,calMonth}=state;
+  document.getElementById('cal-month-label').textContent=`${MESES[calMonth]} ${calYear}`;
+  const grid=document.getElementById('cal-days'); grid.innerHTML='';
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(let i=0;i<firstDay;i++){const b=document.createElement('div');b.setAttribute('aria-hidden','true');grid.appendChild(b);}
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(calYear,calMonth,d);
+    const btn=document.createElement('button');
+    btn.type='button'; btn.className='cal-day'; btn.textContent=d;
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    btn.setAttribute('aria-label',`${d} de ${MESES[calMonth]} de ${calYear}, ${DIAS_NOME[date.getDay()]}`);
+    if(date<today){btn.disabled=true;btn.setAttribute('aria-disabled','true');}
+    else{
+      btn.setAttribute('role','gridcell');
+      if(state.data===ds){btn.classList.add('selected');btn.setAttribute('aria-pressed','true');}
+      if(date.getTime()===today.getTime())btn.classList.add('today');
+      btn.addEventListener('click',()=>selectDate(ds,btn));
+    }
+    grid.appendChild(btn);
+  }
+}
+function selectDate(ds,btn){
+  state.data=ds; state.horario=null;
+  document.querySelectorAll('.cal-day').forEach(b=>{b.classList.remove('selected');b.removeAttribute('aria-pressed');});
+  btn.classList.add('selected'); btn.setAttribute('aria-pressed','true');
+  toggleError('err-data',false);
+  const[y,m,d]=ds.split('-');
+  anunciar(`Data selecionada: ${d} de ${MESES[parseInt(m)-1]} de ${y}. Buscando horários disponíveis.`);
+  loadHorarios(ds);
+}
+
+// ── HORÁRIOS ──
+async function loadHorarios(ds){
+  const grid=document.getElementById('horarios-grid');
+  const loading=document.getElementById('horarios-loading');
+  grid.innerHTML=''; loading.style.display='block';
+  try{
+    const{data:agends,error}=await db.from('agendamentos').select('horario').eq('data',ds).neq('status','cancelado');
+    if(error)throw error;
+    const ocupados=new Set((agends||[]).map(a=>a.horario));
+    loading.style.display='none';
+    renderHorarios(ocupados);
+    const livres=HORARIOS.length-ocupados.size;
+    anunciar(`Horários carregados. ${livres} horário${livres!==1?'s':''} disponível${livres!==1?'is':''}.`);
+  }catch(e){
+    loading.style.display='none';
+    renderHorarios(new Set());
+    console.error(e);
+  }
+}
+function renderHorarios(ocupados=new Set()){
+  const grid=document.getElementById('horarios-grid'); grid.innerHTML='';
+  HORARIOS.forEach(h=>{
+    const btn=document.createElement('button');
+    btn.type='button'; btn.className='horario-btn'; btn.textContent=h;
+    if(ocupados.has(h)){btn.disabled=true;btn.setAttribute('aria-label',`${h}, horário indisponível, já reservado`);}
+    else{
+      btn.setAttribute('aria-label',`${h}, disponível`);
+      btn.setAttribute('aria-pressed',state.horario===h?'true':'false');
+      btn.addEventListener('click',()=>{
+        state.horario=h;
+        document.querySelectorAll('.horario-btn').forEach(b=>b.setAttribute('aria-pressed','false'));
+        btn.setAttribute('aria-pressed','true');
+        toggleError('err-horario',false);
+        anunciar(`Horário ${h} selecionado.`);
+      });
+    }
+    grid.appendChild(btn);
+  });
+}
+
+// ── RESUMO ──
+function preencherResumo(){
+  const srv=document.querySelector('input[name="servico"]:checked')?.value;
+  state.servico=srv; state.nome=document.getElementById('nome').value.trim();
+  state.telefone=document.getElementById('telefone').value.trim();
+  state.email=document.getElementById('email').value.trim();
+  state.obs=document.getElementById('obs').value.trim();
+  document.getElementById('res-servico').textContent=SERVICO_LABEL[srv]||'–';
+  document.getElementById('res-nome').textContent=state.nome;
+  document.getElementById('res-telefone').textContent=state.telefone;
+  document.getElementById('res-obs').textContent=state.obs||'Nenhuma';
+  if(state.data){const[y,m,d]=state.data.split('-');document.getElementById('res-data').textContent=`${d}/${m}/${y}`;}
+  document.getElementById('res-horario').textContent=state.horario||'–';
+}
+
+// ── GERAR LINKS WHATSAPP ──
+function gerarLinksWA(codigo){
+  const[y,m,d]=state.data.split('-');
+  const dataFmt=`${d}/${m}/${y}`;
+  const srv=SERVICO_LABEL[state.servico];
+
+  // Mensagem do CLIENTE para a CLÍNICA
+  const msgCliente=
+    `✅ *Confirmação de Agendamento*\n\n`+
+    `Olá! Gostaria de confirmar meu agendamento:\n\n`+
+    `📋 *Código:* ${codigo}\n`+
+    `💆 *Serviço:* ${srv}\n`+
+    `👤 *Nome:* ${state.nome}\n`+
+    `📅 *Data:* ${dataFmt}\n`+
+    `⏰ *Horário:* ${state.horario}\n`+
+    (state.obs?`📝 *Observações:* ${state.obs}\n`:'')+
+    `\nAguardo a confirmação. Obrigado(a)! 🙏`;
+
+  document.getElementById('wa-link-cliente').href=
+    `https://wa.me/${CLINICA_WA}?text=${encodeURIComponent(msgCliente)}`;
+}
+
+// ── SALVAR NO SUPABASE ──
+async function salvarAgendamento(){
+  const btn=document.getElementById('btn-submit');
+  btn.disabled=true; btn.innerHTML='<span class="spinner" aria-hidden="true"></span> Salvando...';
+  anunciar('Salvando seu agendamento, aguarde um momento.');
+  const codigo='AG'+Math.floor(Math.random()*900+100)+String(Date.now()).slice(-4);
+  try{
+    const{error}=await db.from('agendamentos').insert([{
+      codigo, servico:state.servico, nome_cliente:state.nome,
+      telefone:state.telefone, email:state.email||null,
+      data:state.data, horario:state.horario,
+      observacoes:state.obs||null, status:'confirmado',
+      criado_em:new Date().toISOString()
+    }]);
+    if(error)throw error;
+
+    // Gera links WA
+    gerarLinksWA(codigo);
+
+    // Mostra sucesso
+    document.getElementById('codigo-agend').textContent=codigo;
+    document.querySelectorAll('.form-panel').forEach(p=>p.classList.remove('active'));
+    const s=document.getElementById('panel-sucesso');
+    s.classList.add('active'); s.focus();
+    document.querySelectorAll('.step').forEach(st=>{st.classList.add('done');st.removeAttribute('aria-current');});
+
+    anunciar(`Agendamento salvo com sucesso! Código ${codigo}. Agora toque no botão "Enviar confirmação à clínica" para garantir sua vaga pelo WhatsApp.`);
+    showToast('✅ Agendamento salvo! Confirme pelo WhatsApp.','success');
+
+    // Abre WA do cliente automaticamente após 1.5s
+    setTimeout(()=>{
+      window.open(document.getElementById('wa-link-cliente').href,'_blank');
+    },1500);
+
+  }catch(e){
+    console.error(e);
+    btn.disabled=false; btn.innerHTML='✅ Confirmar e ir ao WhatsApp';
+    const msg=e.message?.includes('does not exist')
+      ?'Tabela não encontrada. Execute o SQL no Supabase primeiro.'
+      :'Erro ao salvar. Tente novamente ou contate pelo WhatsApp.';
+    showToast(msg,'error');
+    anunciar('Erro ao salvar agendamento. '+msg);
+  }
+}
+
+// ── EVENTOS ──
+document.getElementById('btn-p1').addEventListener('click',()=>{
+  if(validarP1()){showPanel(2);renderCalendar();anunciar('Passo 2 de 3. Escolha a data e o horário da sua sessão.');}
+});
+document.getElementById('btn-back-1').addEventListener('click',()=>{showPanel(1);anunciar('Voltou para o passo 1, dados e serviço.');});
+document.getElementById('btn-p2').addEventListener('click',()=>{
+  if(validarP2()){preencherResumo();showPanel(3);anunciar('Passo 3 de 3. Revise seus dados e confirme o agendamento.');}
+});
+document.getElementById('btn-back-2').addEventListener('click',()=>{showPanel(2);anunciar('Voltou para o passo 2, data e horário.');});
+document.getElementById('btn-submit').addEventListener('click',()=>{
+  const aceite=document.getElementById('aceite-termos').checked;
+  toggleError('err-termos',!aceite);
+  if(!aceite){document.getElementById('aceite-termos').focus();anunciar('Marque a caixa de confirmação para finalizar.');return;}
+  salvarAgendamento();
+});
+document.getElementById('btn-novo').addEventListener('click',()=>{
+  document.querySelectorAll('input[name="servico"]').forEach(r=>r.checked=false);
+  ['nome','telefone','email','obs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('aceite-termos').checked=false;
+  state.data=null;state.horario=null;state.servico=null;
+  document.getElementById('panel-sucesso').classList.remove('active');
+  showPanel(1); anunciar('Formulário reiniciado. Iniciando novo agendamento.');
+  document.getElementById('agendamento').scrollIntoView({behavior:'smooth'});
+});
+document.getElementById('prev-month').addEventListener('click',()=>{
+  state.calMonth--;if(state.calMonth<0){state.calMonth=11;state.calYear--;}
+  renderCalendar();anunciar(`${MESES[state.calMonth]} de ${state.calYear}`);
+});
+document.getElementById('next-month').addEventListener('click',()=>{
+  state.calMonth++;if(state.calMonth>11){state.calMonth=0;state.calYear++;}
+  renderCalendar();anunciar(`${MESES[state.calMonth]} de ${state.calYear}`);
+});
+document.getElementById('telefone').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'');
+  if(v.length>11)v=v.slice(0,11);
+  this.value=v.length<=10?v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3'):v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3');
+});
+document.querySelectorAll('.btn-servico[data-servico]').forEach(link=>{
+  link.addEventListener('click',()=>{
+    const r=document.getElementById(`srv-${link.dataset.servico}`);
+    if(r)r.checked=true;
+  });
+});
+renderCalendar();
+</script>
+</body>
+</html>
