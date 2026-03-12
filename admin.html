@@ -227,7 +227,7 @@
 
     <button class="btn-entrar" id="btn-entrar" type="button"
       aria-label="Botão Entrar no painel administrativo">
-      Entrar no Painel
+       Botão Entrar no Painel
     </button>
 
     <p style="margin-top:1.25rem;font-size:.78rem;color:var(--cinza);text-align:center;">
@@ -337,10 +337,10 @@
 
         <div class="filtro-group" style="display:flex;gap:.5rem;flex-direction:row;align-items:flex-end;">
           <button class="btn-filtrar" id="btn-filtrar" type="button" aria-label="Botão Aplicar filtros selecionados">
-            🔍 Filtrar
+            🔍  Botão Filtrar
           </button>
           <button class="btn-limpar" id="btn-limpar-filtros" type="button" aria-label="Botão, Limpar todos os filtros e mostrar todos os agendamentos">
-            Limpar
+             Botão Limpar
           </button>
         </div>
       </div>
@@ -356,7 +356,7 @@
           </span>
           <button class="btn-atualizar" id="btn-atualizar" type="button"
             aria-label="Botão Atualizar lista de agendamentos buscando dados mais recentes">
-            🔄 Atualizar
+            🔄 Botão Atualizar
           </button>
         </div>
       </div>
@@ -691,26 +691,26 @@ function renderTabela() {
           <button class="btn-acao btn-detalhe" type="button"
             aria-label="Botão Ver detalhes completos do agendamento ${a.codigo} de ${a.nome_cliente}"
             onclick="abrirModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">
-            📋 Detalhes
+            📋  Botão Detalhes
           </button>
           <a href="https://wa.me/55${(a.telefone||'').replace(/\D/g,'')}"
              target="_blank" rel="noopener"
              class="btn-acao btn-wa"
              aria-label="Botão Abrir WhatsApp de ${a.nome_cliente}, telefone ${a.telefone}">
-            💬 WhatsApp
+            💬  Botão WhatsApp
           </a>
           ${a.status!=='concluido'&&a.status!=='cancelado'?`
           <button class="btn-acao btn-concluir" type="button" 
             aria-label="Botão Marcar agendamento ${a.codigo} de ${a.nome_cliente} como concluído"
             onclick="mudarStatus('${a.id}','concluido','${escHtml(a.nome_cliente)}')">
-            ✅ Concluir
+            ✅  Botão Concluir
           </button>`:''
           }
           ${a.status!=='cancelado'?`
           <button class="btn-acao btn-cancelar" type="button"
             aria-label="Botão Cancelar agendamento ${a.codigo} de ${a.nome_cliente}"
             onclick="confirmarCancelamento('${a.id}','${escHtml(a.nome_cliente)}')">
-            ✕ Cancelar
+            ✕  Botão Cancelar
           </button>`:''}
         </div>
       </td>
